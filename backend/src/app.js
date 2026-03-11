@@ -19,6 +19,14 @@ app.use(express.json());
 app.use(morgan("dev"));
 app.use("/uploads", express.static(uploadsBasePath));
 
+app.get("/", (req, res) => {
+  res.json({ ok: true, message: "CourierFlow backend is running" });
+});
+
+app.get("/health", (req, res) => {
+  res.json({ ok: true, message: "CourierFlow backend is healthy" });
+});
+
 app.get("/api/health", (req, res) => {
   res.json({ ok: true, message: "CourierFlow API is running" });
 });

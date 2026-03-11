@@ -11,7 +11,7 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 export default async function handler(req, res) {
   try {
-    if (req.url === "/api/health" || req.url === "/health") {
+    if (req.url === "/" || req.url === "/api/health" || req.url === "/health") {
       return app(req, res);
     }
 
