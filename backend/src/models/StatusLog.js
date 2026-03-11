@@ -12,6 +12,8 @@ const statusLogSchema = new mongoose.Schema(
     status: { type: String, enum: PARCEL_STATUSES, required: true },
     note: { type: String, trim: true },
     location: { type: String, trim: true },
+    proofImageUrl: { type: String, trim: true },
+    signatureName: { type: String, trim: true },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

@@ -4,8 +4,10 @@ import { api } from "../api/client";
 const initialState = {
   senderName: "",
   senderPhone: "",
+  senderEmail: "",
   receiverName: "",
   receiverPhone: "",
+  receiverEmail: "",
   receiverAddress: "",
   weightKg: 0,
   codAmount: 0,
@@ -56,6 +58,14 @@ const CreateParcelPage = () => {
           required
         />
 
+        <label>Sender Email</label>
+        <input
+          type="email"
+          value={form.senderEmail}
+          onChange={(e) => setValue("senderEmail", e.target.value)}
+          placeholder="Optional"
+        />
+
         <label>Receiver Name</label>
         <input
           value={form.receiverName}
@@ -68,6 +78,14 @@ const CreateParcelPage = () => {
           value={form.receiverPhone}
           onChange={(e) => setValue("receiverPhone", e.target.value)}
           required
+        />
+
+        <label>Receiver Email</label>
+        <input
+          type="email"
+          value={form.receiverEmail}
+          onChange={(e) => setValue("receiverEmail", e.target.value)}
+          placeholder="Optional"
         />
 
         <label>Receiver Address</label>
