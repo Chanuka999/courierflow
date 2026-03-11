@@ -2,15 +2,32 @@ import fs from "fs";
 import path from "path";
 import multer from "multer";
 
-const uploadsRoot = path.resolve("src", "uploads", "proofs");
+const isVercel = process.env.VERCEL === "1";
+const uploadsRoot = isVercel
+  ? path.join("/tmp", "uploads", "proofs")
+  : path.resolve("src", "uploads", "proofs");
 
-if (!fs.existsSync(uploadsRoot)) {
-  fs.mkdirSync(uploadsRoot, { recursive: true });
+const ensureUploadsDir = () => {
+  if (!fs.existsSync(uploadsRoot)) {
+    fs.mkdirSync(uploadsRoot, { recursive: true });
+  }
+};
+
+try {
+  ensureUploadsDir();
+} catch (error) {
+  // On read-only filesystems, avoid crashing during module initialization.
+  console.error("Upload directory initialization failed", error.message);
 }
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadsRoot);
+    try {
+      ensureUploadsDir();
+      cb(null, uploadsRoot);
+    } catch (error) {
+      cb(error);
+    }
   },
   filename: (req, file, cb) => {
     const extension = path.extname(file.originalname || "").toLowerCase();

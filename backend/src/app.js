@@ -9,11 +9,15 @@ import parcelRoutes from "./routes/parcelRoutes.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 
 const app = express();
+const uploadsBasePath =
+  process.env.VERCEL === "1"
+    ? path.join("/tmp", "uploads")
+    : path.resolve("src", "uploads");
 
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
-app.use("/uploads", express.static(path.resolve("src", "uploads")));
+app.use("/uploads", express.static(uploadsBasePath));
 
 app.get("/api/health", (req, res) => {
   res.json({ ok: true, message: "CourierFlow API is running" });
