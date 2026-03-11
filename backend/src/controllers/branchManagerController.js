@@ -3,11 +3,62 @@ import { StatusLog } from "../models/StatusLog.js";
 import { User } from "../models/User.js";
 import { ROLES } from "../utils/roles.js";
 
-const pendingStatuses = ["created", "picked_up", "in_transit", "out_for_delivery"];
+const pendingStatuses = [
+  "created",
+  "picked_up",
+  "in_transit",
+  "out_for_delivery",
+];
+
+const normalizeBranch = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
+const canonicalBranch = (value) =>
+  normalizeBranch(value)
+    .replace(/\s+/g, "")
+    .replace(/[^a-z0-9]/g, "")
+    .replace(/(.)\1+/g, "$1");
+
+const buildExactBranchFilter = (branch) => ({
+  $regex: `^${String(branch || "")
+    .trim()
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+  $options: "i",
+});
+
+const buildLooseBranchFilter = (branch) => {
+  const canonical = canonicalBranch(branch);
+
+  if (!canonical) {
+    return buildExactBranchFilter(branch);
+  }
+
+  const fuzzyPattern = canonical
+    .split("")
+    .map((char) => `${char}+`)
+    .join("\\W*");
+
+  return {
+    $regex: `^\\W*${fuzzyPattern}\\W*$`,
+    $options: "i",
+  };
+};
+
+const buildBranchMatch = (branch) => [
+  { branch: buildExactBranchFilter(branch) },
+  { branch: buildLooseBranchFilter(branch) },
+];
+
+const isSameBranch = (left, right) =>
+  canonicalBranch(left) === canonicalBranch(right);
 
 const ensureBranch = (req, res) => {
   if (!req.user.branch) {
-    res.status(400).json({ message: "Branch manager must be assigned to a branch" });
+    res
+      .status(400)
+      .json({ message: "Branch manager must be assigned to a branch" });
     return null;
   }
 
@@ -20,6 +71,7 @@ export const getBranchManagerDashboard = async (req, res, next) => {
     if (!branch) {
       return;
     }
+    const branchMatch = buildBranchMatch(branch);
 
     const [
       summaryAgg,
@@ -28,62 +80,70 @@ export const getBranchManagerDashboard = async (req, res, next) => {
       pendingAssignments,
       statusBreakdown,
       riderWorkload,
-    ] =
-      await Promise.all([
-        Parcel.aggregate([
-          { $match: { branch } },
-          {
-            $group: {
-              _id: null,
-              totalParcels: { $sum: 1 },
-              deliveredParcels: {
-                $sum: { $cond: [{ $eq: ["$currentStatus", "delivered"] }, 1, 0] },
+    ] = await Promise.all([
+      Parcel.aggregate([
+        { $match: { $or: branchMatch } },
+        {
+          $group: {
+            _id: null,
+            totalParcels: { $sum: 1 },
+            deliveredParcels: {
+              $sum: { $cond: [{ $eq: ["$currentStatus", "delivered"] }, 1, 0] },
+            },
+            pendingParcels: {
+              $sum: {
+                $cond: [{ $in: ["$currentStatus", pendingStatuses] }, 1, 0],
               },
-              pendingParcels: {
-                $sum: { $cond: [{ $in: ["$currentStatus", pendingStatuses] }, 1, 0] },
-              },
             },
           },
-        ]),
-        Parcel.find({ branch })
-          .populate("assignedRider", "name email branch")
-          .sort({ createdAt: -1 })
-          .limit(120),
-        User.find({ role: ROLES.RIDER, branch })
-          .select("name email branch createdAt")
-          .sort({ createdAt: -1 }),
-        Parcel.find({ branch, assignedRider: { $in: [null, undefined] } })
-          .sort({ createdAt: -1 })
-          .limit(80),
-        Parcel.aggregate([
-          { $match: { branch } },
-          { $group: { _id: "$currentStatus", total: { $sum: 1 } } },
-          { $sort: { total: -1 } },
-        ]),
-        Parcel.aggregate([
-          { $match: { branch, assignedRider: { $ne: null } } },
-          { $group: { _id: "$assignedRider", totalAssigned: { $sum: 1 } } },
-          { $sort: { totalAssigned: -1 } },
-          {
-            $lookup: {
-              from: "users",
-              localField: "_id",
-              foreignField: "_id",
-              as: "rider",
-            },
+        },
+      ]),
+      Parcel.find({ $or: branchMatch })
+        .populate("assignedRider", "name email branch")
+        .sort({ createdAt: -1 })
+        .limit(120),
+      User.find({ role: ROLES.RIDER, $or: branchMatch })
+        .select("name email branch createdAt")
+        .sort({ createdAt: -1 }),
+      Parcel.find({
+        $or: branchMatch,
+        assignedRider: { $in: [null, undefined] },
+      })
+        .sort({ createdAt: -1 })
+        .limit(80),
+      Parcel.aggregate([
+        { $match: { $or: branchMatch } },
+        { $group: { _id: "$currentStatus", total: { $sum: 1 } } },
+        { $sort: { total: -1 } },
+      ]),
+      Parcel.aggregate([
+        {
+          $match: {
+            $and: [{ $or: branchMatch }, { assignedRider: { $ne: null } }],
           },
-          { $unwind: "$rider" },
-          {
-            $project: {
-              _id: 0,
-              riderId: "$rider._id",
-              riderName: "$rider.name",
-              riderEmail: "$rider.email",
-              totalAssigned: 1,
-            },
+        },
+        { $group: { _id: "$assignedRider", totalAssigned: { $sum: 1 } } },
+        { $sort: { totalAssigned: -1 } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "rider",
           },
-        ]),
-      ]);
+        },
+        { $unwind: "$rider" },
+        {
+          $project: {
+            _id: 0,
+            riderId: "$rider._id",
+            riderName: "$rider.name",
+            riderEmail: "$rider.email",
+            totalAssigned: 1,
+          },
+        },
+      ]),
+    ]);
 
     const summary = summaryAgg[0] || {
       totalParcels: 0,
@@ -116,7 +176,7 @@ export const listBranchParcels = async (req, res, next) => {
       return;
     }
 
-    const query = { branch };
+    const query = { $or: buildBranchMatch(branch) };
     if (req.query.status) {
       query.currentStatus = req.query.status;
     }
@@ -178,8 +238,10 @@ export const deleteRider = async (req, res, next) => {
       return res.status(404).json({ message: "Rider not found" });
     }
 
-    if (rider.role !== ROLES.RIDER || rider.branch !== branch) {
-      return res.status(403).json({ message: "You can only delete riders in your branch" });
+    if (rider.role !== ROLES.RIDER || !isSameBranch(rider.branch, branch)) {
+      return res
+        .status(403)
+        .json({ message: "You can only delete riders in your branch" });
     }
 
     await rider.deleteOne();
@@ -202,12 +264,18 @@ export const approveAssignment = async (req, res, next) => {
       return res.status(404).json({ message: "Parcel not found" });
     }
 
-    if (parcel.branch !== branch) {
-      return res.status(403).json({ message: "You can only approve assignments in your branch" });
+    if (!isSameBranch(parcel.branch, branch)) {
+      return res
+        .status(403)
+        .json({ message: "You can only approve assignments in your branch" });
     }
 
     const rider = await User.findById(riderId);
-    if (!rider || rider.role !== ROLES.RIDER || rider.branch !== branch) {
+    if (
+      !rider ||
+      rider.role !== ROLES.RIDER ||
+      !isSameBranch(rider.branch, branch)
+    ) {
       return res.status(400).json({ message: "Invalid rider for this branch" });
     }
 
@@ -217,7 +285,8 @@ export const approveAssignment = async (req, res, next) => {
     await StatusLog.create({
       parcel: parcel._id,
       status: parcel.currentStatus,
-      note: note || `Assignment approved by branch manager for rider ${rider.name}`,
+      note:
+        note || `Assignment approved by branch manager for rider ${rider.name}`,
       updatedBy: req.user._id,
     });
 
@@ -238,15 +307,20 @@ export const generateBranchReports = async (req, res, next) => {
     if (!branch) {
       return;
     }
+    const branchMatch = buildBranchMatch(branch);
 
     const [statusBreakdown, riderWorkload] = await Promise.all([
       Parcel.aggregate([
-        { $match: { branch } },
+        { $match: { $or: branchMatch } },
         { $group: { _id: "$currentStatus", total: { $sum: 1 } } },
         { $sort: { total: -1 } },
       ]),
       Parcel.aggregate([
-        { $match: { branch, assignedRider: { $ne: null } } },
+        {
+          $match: {
+            $and: [{ $or: branchMatch }, { assignedRider: { $ne: null } }],
+          },
+        },
         { $group: { _id: "$assignedRider", totalAssigned: { $sum: 1 } } },
         { $sort: { totalAssigned: -1 } },
         {
