@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { motion } from "framer-motion";
+import { Package, CheckCircle, Clock, MapPin, Search } from "lucide-react";
 
 const superAdminResponsibilities = [
   "System configuration manage කිරීම",
@@ -651,7 +653,7 @@ const DashboardPage = () => {
     "Dashboard";
 
   return (
-    <section className="dashboard">
+    <section className="dashboard" data-role={user?.role || "customer"}>
       <header className="topbar card">
         <div className="topbar-main">
           <p className="admin-kicker">Control Desk</p>
@@ -693,18 +695,23 @@ const DashboardPage = () => {
           </aside>
 
           <div className="admin-content">
-            <section className="card super-admin-hero">
-              <p className="admin-kicker">Super Admin Control Center</p>
-              <h2>Highest Authority Role</h2>
-              <p>
-                System-level configuration, branch governance, user lifecycle,
-                and full visibility are available in this role.
-              </p>
-              <div className="admin-chip-row">
-                <span className="admin-chip">Global Access</span>
-                <span className="admin-chip">Audit Ready</span>
-                <span className="admin-chip">Branch Governance</span>
-                <span className="admin-chip">Users & Reports</span>
+            <section className="card super-admin-hero hero-with-image">
+              <div className="hero-text-content">
+                <p className="admin-kicker">Super Admin Control Center</p>
+                <h2>Highest Authority Role</h2>
+                <p>
+                  System-level configuration, branch governance, user lifecycle,
+                  and full visibility are available in this role.
+                </p>
+                <div className="admin-chip-row">
+                  <span className="admin-chip">Global Access</span>
+                  <span className="admin-chip">Audit Ready</span>
+                  <span className="admin-chip">Branch Governance</span>
+                  <span className="admin-chip">Users & Reports</span>
+                </div>
+              </div>
+              <div className="hero-image-container">
+                <img src="/images/admin_hero.png" alt="Super Admin Control Center" />
               </div>
             </section>
 
@@ -1189,19 +1196,24 @@ const DashboardPage = () => {
           </aside>
 
           <div className="admin-content">
-            <section className="card super-admin-hero">
-              <p className="admin-kicker">Branch Operations Control</p>
-              <h2>Branch Manager</h2>
-              <p>
-                This role is responsible for day-to-day branch operations,
-                delivery coordination, and team oversight.
-              </p>
-              <div className="admin-chip-row">
-                {branchManagerResponsibilities.map((item) => (
-                  <span key={item} className="admin-chip">
-                    {item}
-                  </span>
-                ))}
+            <section className="card super-admin-hero hero-with-image">
+              <div className="hero-text-content">
+                <p className="admin-kicker">Branch Operations Control</p>
+                <h2>Branch Manager</h2>
+                <p>
+                  This role is responsible for day-to-day branch operations,
+                  delivery coordination, and team oversight.
+                </p>
+                <div className="admin-chip-row">
+                  {branchManagerResponsibilities.map((item) => (
+                    <span key={item} className="admin-chip">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="hero-image-container">
+                <img src="/images/branch_manager_hero.png" alt="Branch Manager" />
               </div>
             </section>
 
@@ -1546,16 +1558,21 @@ const DashboardPage = () => {
           </aside>
 
           <div className="admin-content">
-            <section className="card super-admin-hero">
-              <p className="admin-kicker">Parcel Operations Control</p>
-              <h2>Dispatcher</h2>
-              <p>Parcel operations handling role for dispatch execution.</p>
-              <div className="admin-chip-row">
-                {dispatcherResponsibilities.map((item) => (
-                  <span key={item} className="admin-chip">
-                    {item}
-                  </span>
-                ))}
+            <section className="card super-admin-hero hero-with-image">
+              <div className="hero-text-content">
+                <p className="admin-kicker">Parcel Operations Control</p>
+                <h2>Dispatcher</h2>
+                <p>Parcel operations handling role for dispatch execution.</p>
+                <div className="admin-chip-row">
+                  {dispatcherResponsibilities.map((item) => (
+                    <span key={item} className="admin-chip">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="hero-image-container">
+                <img src="/images/dispatcher_hero.png" alt="Dispatcher" />
               </div>
             </section>
 
@@ -1894,19 +1911,24 @@ const DashboardPage = () => {
           </aside>
 
           <div className="admin-content">
-            <section className="card super-admin-hero">
-              <p className="admin-kicker">Field Delivery Console</p>
-              <h2>Delivery Rider</h2>
-              <p>
-                You can only access parcels assigned to you and update the
-                delivery journey with proof and notes.
-              </p>
-              <div className="admin-chip-row">
-                {riderResponsibilities.map((item) => (
-                  <span key={item} className="admin-chip">
-                    {item}
-                  </span>
-                ))}
+            <section className="card super-admin-hero hero-with-image">
+              <div className="hero-text-content">
+                <p className="admin-kicker">Field Delivery Console</p>
+                <h2>Delivery Rider</h2>
+                <p>
+                  You can only access parcels assigned to you and update the
+                  delivery journey with proof and notes.
+                </p>
+                <div className="admin-chip-row">
+                  {riderResponsibilities.map((item) => (
+                    <span key={item} className="admin-chip">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="hero-image-container">
+                <img src="/images/rider_hero.png" alt="Delivery Rider" />
               </div>
             </section>
 
@@ -2184,31 +2206,97 @@ const DashboardPage = () => {
       ) : null}
 
       {!isSuperAdmin && !isBranchManager && !isDispatcher && !isRider ? (
-        <>
-          <div className="grid-3">
-            <article className="card stat">
-              <h3>Total Parcels</h3>
-              <p>{metrics.total}</p>
-            </article>
-            <article className="card stat">
-              <h3>Delivered</h3>
-              <p>{metrics.delivered}</p>
-            </article>
-            <article className="card stat">
-              <h3>Pending</h3>
-              <p>{metrics.pending}</p>
-            </article>
+        <motion.div 
+          className="customer-dashboard-modern"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="customer-header-section">
+            <motion.h2 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              Your Deliveries Overview
+            </motion.h2>
+            <p>Track and manage all your packages in one place.</p>
           </div>
 
-          <div className="card quick-links">
-            <h2>Quick Actions</h2>
-            <div className="actions">
-              <Link to="/tracking" className="button-link outline">
-                Customer Tracking
+          <motion.div 
+            className="modern-grid-3"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: { staggerChildren: 0.1 }
+              }
+            }}
+          >
+            <motion.article 
+              className="card modern-stat-card total-card"
+              variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+              whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(27, 95, 191, 0.15)" }}
+            >
+              <div className="icon-wrapper bg-blue-soft">
+                <Package size={28} className="text-blue" />
+              </div>
+              <div>
+                <h3>Total Parcels</h3>
+                <p>{metrics.total}</p>
+              </div>
+            </motion.article>
+
+            <motion.article 
+              className="card modern-stat-card delivered-card"
+              variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+              whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(39, 103, 73, 0.15)" }}
+            >
+              <div className="icon-wrapper bg-green-soft">
+                <CheckCircle size={28} className="text-green" />
+              </div>
+              <div>
+                <h3>Delivered</h3>
+                <p>{metrics.delivered}</p>
+              </div>
+            </motion.article>
+
+            <motion.article 
+              className="card modern-stat-card pending-card"
+              variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+              whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(197, 48, 48, 0.15)" }}
+            >
+              <div className="icon-wrapper bg-red-soft">
+                <Clock size={28} className="text-red" />
+              </div>
+              <div>
+                <h3>Pending</h3>
+                <p>{metrics.pending}</p>
+              </div>
+            </motion.article>
+          </motion.div>
+
+          <motion.div 
+            className="card modern-quick-links"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <div className="quick-action-content">
+              <h2>Ready to Track?</h2>
+              <p>Enter your tracking ID to see real-time updates and delivery status.</p>
+              <Link to="/tracking" className="modern-button-link">
+                <Search size={20} />
+                Track a Package
               </Link>
             </div>
-          </div>
-        </>
+            <div className="quick-action-visual">
+              <MapPin size={80} className="floating-icon" strokeWidth={1} />
+            </div>
+          </motion.div>
+        </motion.div>
       ) : null}
     </section>
   );
